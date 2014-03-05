@@ -19,7 +19,8 @@
     "co-parallel": "0.0.1",
     "co-write": "~0.3.0",
     "co-read": "0.0.1",
-    "object-values": "~0.1.0"
+    "object-values": "~0.1.0",
+    "through": "~2.3.4"
   },
   "devDependencies": {
     "mocha": "*",

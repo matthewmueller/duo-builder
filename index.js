@@ -18,6 +18,8 @@ var parallel = require('co-parallel');
 var write = require('co-write');
 var read = require('co-read');
 var values = require('object-values');
+var through = require('through');
+var req = require('./require.js');
 
 /**
  * Expose `Builder`
@@ -41,11 +43,21 @@ function Builder(entry) {
   this.mapping = require(join(this.depdir, 'mapping.json'));
   this.transforms = [];
   this.visited = {};
-  this.pack = [];
+  // this.pack = [];
   this.ids = {};
   this._concurrency = 10;
   this.out = [];
+  this.buildfile = join(this.dir, 'build.js');
   this.id = 0;
+}
+
+/**
+ * to
+ */
+
+Builder.prototype.to = function(file) {
+  this.buildfile = join(this.dir, file);
+  return this;
 }
 
 /**
@@ -62,56 +74,44 @@ Builder.prototype.use = function(ext, gen) {
  */
 
 Builder.prototype.build = function *() {
+  var build = fs.createWriteStream(this.buildfile);
   var files = [this.entry];
-  var out = [];
+  var packed = {};
+
+  // prelude
+  yield write(build, 'var require = ' + req + '({\n');
 
   while (files.length) {
-    var jsons = yield files.map(this.walk, this);
-    out = out.concat(jsons);
+    var jsons = yield this.parallel(files.map(this.walk, this));
 
     files = [];
     jsons.forEach(function(json) {
       files = files.concat(values(json.deps));
     });
 
-    // console.log(files);
-
+    jsons = jsons.map(this.remap, this);
+    yield this.parallel(jsons.map(tobuild));
   }
 
-  console.log(JSON.stringify(out, true, 2));
-  //
-  // files.forEach(function(file) {
-  //   var jsons = yield file
-  // })
-  // var json = yield this.walk(this.entry);
-  // console.log(json);
-  // yield this.buildPack(this.entry, 'component.json');
-  // console.log(this.pack);
-  // var pack = Packer();
-  // pack.pipe(fs.createWriteStream(join(this.dir, 'build.js')))
-  // yield write(pack, JSON.stringify(this.pack));
-  // pack.end();
-  // console.log(pack.writable);
-  // console.log('a', yield read(pack));
-  // console.log('b', yield read(pack));
-  // console.log(yield read(pack));
-  // console.log('ok');
+  // epilogue
+  yield write(build, '}, {}, [' + this.ids[this.entry] + '])\n');
+
+  function *tobuild(json) {
+    var deps = JSON.stringify(json.deps);
+    var str = json.id + ': [' + wrap(json.src) + ', ' + deps + ']';
+    str = files.length ? str + ',\n\n' : str;
+    yield write(build, str);
+  }
+
+  function wrap(src) {
+    out = 'function(require, module, exports) {\n\n'
+    out += src;
+    out += '\n}';
+    return out;
+  }
+
   return this;
 };
-
-/**
- * Prepare the JSON
- */
-
-Builder.prototype.prepare = function *(file) {
-  var json = yield this.walk(file);
-
-  for (var dep in json.deps) {
-
-  }
-};
-
-
 
 Builder.prototype.walk = function *(file) {
   if (this.visited[file]) return this.visited[file];
@@ -134,49 +134,71 @@ Builder.prototype.walk = function *(file) {
   return json;
 };
 
-Builder.prototype.buildPack = function *(file) {
-  var isEntry = file == this.entry;
-
-  if (this.visited[file]) return this.visited[file];
-  // add .js if no file extension given
-  // file = extname(file) ? file : file + '.js';
-
-
-  var pack = {};
-  pack.id = path.resolve(file);
-  // TODO: fix... recursive at the moment...
-  // pack.src = yield readFile(file, 'utf8');
-  pack.entry = isEntry;
-  pack.deps = {};
-
-  detective(pack.src).forEach(resolve, this);
-
-  this.visited[file] = pack;
-
-  // recursively load the dependencies
-  yield pack;
-
-  return pack;
-
-  // resolve the requires
-  function resolve(req) {
-    var path = this.resolve(req, isEntry ? 'component.json' : file);
-    pack.deps[req] = this.build(path);
-  };
-};
-
 /**
- * Build the javascript
+ * Remap the module's filepaths to uids
  */
 
-Builder.prototype.js = function *() {
-  var manifest = join(this.dir, 'component.json');
+Builder.prototype.remap = function(json) {
+  var self = this;
+  json.id = id(json.id);
 
-  console.log(manifest);
-  var deps = this.mapping[manifest];
-  console.log(deps);
-  return null;
-}
+  for (var req in json.deps) {
+    json.deps[req] = id(json.deps[req]);
+  }
+
+  return json;
+
+  function id (file) {
+    return self.ids[file] = self.ids[file] || ++self.id;
+  }
+};
+
+
+
+//
+// Builder.prototype.buildPack = function *(file) {
+//   var isEntry = file == this.entry;
+//
+//   if (this.visited[file]) return this.visited[file];
+//   // add .js if no file extension given
+//   // file = extname(file) ? file : file + '.js';
+//
+//
+//   var pack = {};
+//   pack.id = path.resolve(file);
+//   // TODO: fix... recursive at the moment...
+//   // pack.src = yield readFile(file, 'utf8');
+//   pack.entry = isEntry;
+//   pack.deps = {};
+//
+//   detective(pack.src).forEach(resolve, this);
+//
+//   this.visited[file] = pack;
+//
+//   // recursively load the dependencies
+//   yield pack;
+//
+//   return pack;
+//
+//   // resolve the requires
+//   function resolve(req) {
+//     var path = this.resolve(req, isEntry ? 'component.json' : file);
+//     pack.deps[req] = this.build(path);
+//   };
+// };
+//
+// /**
+//  * Build the javascript
+//  */
+//
+// Builder.prototype.js = function *() {
+//   var manifest = join(this.dir, 'component.json');
+//
+//   console.log(manifest);
+//   var deps = this.mapping[manifest];
+//   console.log(deps);
+//   return null;
+// }
 
 /**
  * Run functions in parallel

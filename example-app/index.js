@@ -12,3 +12,4 @@ var test = require('./test');
  */
 
 console.log(uid(10));
+console.log(infinite);
