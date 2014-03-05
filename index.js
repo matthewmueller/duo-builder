@@ -58,7 +58,11 @@ function Builder(entry) {
 }
 
 /**
- * to
+ * Specify the `file` to build to
+ *
+ * @param {String} file
+ * @return {Builder} self
+ * @api public
  */
 
 Builder.prototype.to = function(file) {
@@ -67,7 +71,12 @@ Builder.prototype.to = function(file) {
 }
 
 /**
- * use
+ * Use a transform
+ *
+ * @param {String} ext (optional)
+ * @param {GeneratorFunction} gen
+ * @return {Builder} self
+ * @api public
  */
 
 Builder.prototype.use = function(ext, gen) {
@@ -76,7 +85,10 @@ Builder.prototype.use = function(ext, gen) {
 }
 
 /**
- * build
+ * Build & write the bundle
+ *
+ * @return {Builder} (self)
+ * @api public
  */
 
 Builder.prototype.build = function *() {
@@ -89,11 +101,10 @@ Builder.prototype.build = function *() {
 
   // prelude
   yield write(build, 'var require = ' + req + '({\n');
-  console.log('writing...');
   yield write(cache, '[');
 
   while (files.length) {
-    var jsons = yield this.parallel(files.map(this.walk, this));
+    var jsons = yield this.parallel(files.map(this.generate, this));
 
     files = [];
     jsons.forEach(function(json) {
@@ -101,9 +112,7 @@ Builder.prototype.build = function *() {
     });
 
     yield this.parallel(jsons.map(tocache));
-
     jsons = jsons.map(this.remap, this);
-
     yield this.parallel(jsons.map(tobuild));
   }
 
@@ -134,7 +143,15 @@ Builder.prototype.build = function *() {
   return this;
 };
 
-Builder.prototype.walk = function *(file) {
+/**
+ * Generate the `json` for `file`
+ *
+ * @param {String} file
+ * @return {Object} json
+ * @api private
+ */
+
+Builder.prototype.generate = function *(file) {
   if (this.visited[file]) return this.visited[file];
 
   var json = {};
@@ -158,6 +175,10 @@ Builder.prototype.walk = function *(file) {
 
 /**
  * Remap the module's filepaths to uids
+ *
+ * @param {Object} json
+ * @return {Object}
+ * @api private
  */
 
 Builder.prototype.remap = function(json) {
@@ -175,55 +196,12 @@ Builder.prototype.remap = function(json) {
   }
 };
 
-
-
-//
-// Builder.prototype.buildPack = function *(file) {
-//   var isEntry = file == this.entry;
-//
-//   if (this.visited[file]) return this.visited[file];
-//   // add .js if no file extension given
-//   // file = extname(file) ? file : file + '.js';
-//
-//
-//   var pack = {};
-//   pack.id = path.resolve(file);
-//   // TODO: fix... recursive at the moment...
-//   // pack.src = yield readFile(file, 'utf8');
-//   pack.entry = isEntry;
-//   pack.deps = {};
-//
-//   detective(pack.src).forEach(resolve, this);
-//
-//   this.visited[file] = pack;
-//
-//   // recursively load the dependencies
-//   yield pack;
-//
-//   return pack;
-//
-//   // resolve the requires
-//   function resolve(req) {
-//     var path = this.resolve(req, isEntry ? 'component.json' : file);
-//     pack.deps[req] = this.build(path);
-//   };
-// };
-//
-// /**
-//  * Build the javascript
-//  */
-//
-// Builder.prototype.js = function *() {
-//   var manifest = join(this.dir, 'component.json');
-//
-//   console.log(manifest);
-//   var deps = this.mapping[manifest];
-//   console.log(deps);
-//   return null;
-// }
-
 /**
  * Run functions in parallel
+ *
+ * @param {Array} arr
+ * @return {Function}
+ * @api private
  */
 
 Builder.prototype.parallel = function(arr) {
@@ -261,7 +239,12 @@ Builder.prototype.resolve = function (req, file) {
 }
 
 /**
- * Find manifest
+ * Find the manifest
+ *
+ * @param {String} req
+ * @param {Array} deps
+ * @return {String}
+ * @api private
  */
 
 Builder.prototype.findManifest = function(req, deps) {
