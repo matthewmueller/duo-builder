@@ -16,6 +16,7 @@ var test = require('./test');
 
 console.log(uid(10));
 console.log(infinite);
+console.log('changed...');
 
 }, {"uid":2,"events":3,"infinity":4,"./test":5}],
 

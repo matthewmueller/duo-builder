@@ -13,6 +13,7 @@ var debug = require('debug')('duo-builder');
 var Packer = require('browser-pack');
 var cofs = require('co-fs');
 var readFile = cofs.readFile;
+var stat = cofs.stat;
 var fs = require('fs');
 var parallel = require('co-parallel');
 var write = require('co-write');
@@ -43,12 +44,17 @@ function Builder(entry) {
   this.mapping = require(join(this.depdir, 'mapping.json'));
   this.transforms = [];
   this.visited = {};
-  // this.pack = [];
   this.ids = {};
   this._concurrency = 10;
   this.out = [];
   this.buildfile = join(this.dir, 'build.js');
   this.id = 0;
+
+  try {
+    this.cache = require(join(this.depdir, 'cache.json'));
+  } catch(e) {
+    this.cache = [];
+  }
 }
 
 /**
@@ -75,11 +81,16 @@ Builder.prototype.use = function(ext, gen) {
 
 Builder.prototype.build = function *() {
   var build = fs.createWriteStream(this.buildfile);
+  var cache = fs.createWriteStream(join(this.depdir, 'cache.json'))
   var files = [this.entry];
   var packed = {};
 
+  // TODO: move all this to "duo-pack"
+
   // prelude
   yield write(build, 'var require = ' + req + '({\n');
+  console.log('writing...');
+  yield write(cache, '[');
 
   while (files.length) {
     var jsons = yield this.parallel(files.map(this.walk, this));
@@ -89,18 +100,28 @@ Builder.prototype.build = function *() {
       files = files.concat(values(json.deps));
     });
 
+    yield this.parallel(jsons.map(tocache));
+
     jsons = jsons.map(this.remap, this);
+
     yield this.parallel(jsons.map(tobuild));
   }
 
   // epilogue
   yield write(build, '}, {}, [' + this.ids[this.entry] + '])\n');
+  yield write(cache, ']');
 
   function *tobuild(json) {
     var deps = JSON.stringify(json.deps);
     var str = json.id + ': [' + wrap(json.src) + ', ' + deps + ']';
     str = files.length ? str + ',\n\n' : str;
     yield write(build, str);
+  }
+
+  function *tocache(json) {
+    var str = JSON.stringify(json);
+    if (files.length) str += ',';
+    yield write(cache, str);
   }
 
   function wrap(src) {
@@ -119,6 +140,7 @@ Builder.prototype.walk = function *(file) {
   var json = {};
   json.id = file;
   json.entry = file == this.entry;
+  json.mtime = (yield stat(file)).mtime;
   json.src = yield readFile(file, 'utf8');
   json.deps = {};
 
