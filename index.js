@@ -20,7 +20,7 @@ var write = require('co-write');
 var read = require('co-read');
 var values = require('object-values');
 var through = require('through');
-var req = require('./require.js');
+var Pack = require('duo-pack');
 
 /**
  * Expose `Builder`
@@ -92,15 +92,11 @@ Builder.prototype.use = function(ext, gen) {
  */
 
 Builder.prototype.build = function *() {
-  var build = fs.createWriteStream(this.buildfile);
+  var pack = Pack(this.buildfile);
   var cache = fs.createWriteStream(join(this.depdir, 'cache.json'))
   var files = [this.entry];
-  var packed = {};
-
-  // TODO: move all this to "duo-pack"
 
   // prelude
-  yield write(build, 'var require = ' + req + '({\n');
   yield write(cache, '[');
 
   while (files.length) {
@@ -113,31 +109,20 @@ Builder.prototype.build = function *() {
 
     yield this.parallel(jsons.map(tocache));
     jsons = jsons.map(this.remap, this);
-    yield this.parallel(jsons.map(tobuild));
+    yield this.parallel(jsons.map(build));
   }
 
-  // epilogue
-  yield write(build, '}, {}, [' + this.ids[this.entry] + '])\n');
+  // cache
   yield write(cache, ']');
 
-  function *tobuild(json) {
-    var deps = JSON.stringify(json.deps);
-    var str = json.id + ': [' + wrap(json.src) + ', ' + deps + ']';
-    str = files.length ? str + ',\n\n' : str;
-    yield write(build, str);
+  function *build(json) {
+    yield pack(json, !files.length)
   }
 
   function *tocache(json) {
     var str = JSON.stringify(json);
     if (files.length) str += ',';
     yield write(cache, str);
-  }
-
-  function wrap(src) {
-    out = 'function(require, module, exports) {\n\n'
-    out += src;
-    out += '\n}';
-    return out;
   }
 
   return this;
