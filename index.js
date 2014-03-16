@@ -68,7 +68,7 @@ function Builder(entry) {
 Builder.prototype.to = function(file) {
   this.buildfile = join(this.dir, file);
   return this;
-}
+};
 
 /**
  * Use a transform
@@ -82,7 +82,7 @@ Builder.prototype.to = function(file) {
 Builder.prototype.use = function(ext, gen) {
   this.transforms.push([ext, gen]);
   return this;
-}
+};
 
 /**
  * Build & write the bundle
@@ -93,7 +93,7 @@ Builder.prototype.use = function(ext, gen) {
 
 Builder.prototype.build = function *() {
   var pack = Pack(this.buildfile);
-  var cache = fs.createWriteStream(join(this.depdir, 'cache.json'))
+  var cache = fs.createWriteStream(join(this.depdir, 'cache.json'));
   var files = [this.entry];
 
   // prelude
@@ -116,7 +116,7 @@ Builder.prototype.build = function *() {
   yield write(cache, ']');
 
   function *build(json) {
-    yield pack(json, !files.length)
+    yield pack(json, !files.length);
   }
 
   function *tocache(json) {
@@ -191,7 +191,7 @@ Builder.prototype.remap = function(json) {
 
 Builder.prototype.parallel = function(arr) {
   return parallel(arr, this._concurrency);
-}
+};
 
 /**
  * Resolve a dependency
@@ -221,7 +221,7 @@ Builder.prototype.resolve = function (req, file) {
   if (!deps) throw new Error('mapping not found: ' + req + ' ' + file);
 
   return this.findManifest(req, deps);
-}
+};
 
 /**
  * Find the manifest
@@ -240,4 +240,4 @@ Builder.prototype.findManifest = function(req, deps) {
   }
 
   return null;
-}
+};
