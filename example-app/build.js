@@ -9,6 +9,7 @@ var uid = require('uid');
 var events = require('events');
 var infinite = require('infinity');
 var test = require('./test');
+var signup = require('/lib/signup/signup.js')
 
 /**
  * UID
@@ -16,9 +17,9 @@ var test = require('./test');
 
 console.log(uid(10));
 console.log(infinite);
-console.log('changed...');
+console.log(signup);
 
-}, {"uid":2,"events":3,"infinity":4,"./test":5}],
+}, {"uid":2,"events":3,"infinity":4,"./test":5,"/lib/signup/signup.js":6}],
 
 2: [function(require, module, exports) {
 
@@ -221,7 +222,7 @@ function parse(event) {
   }
 }
 
-}, {"event":6,"delegate":7}],
+}, {"event":7,"delegate":8}],
 
 4: [function(require, module, exports) {
 
@@ -506,7 +507,7 @@ infinity.prototype.unbind = function() {
   return this;
 };
 
-}, {"event":8,"query":9,"throttle":10,"debounce":11,"emitter":12}],
+}, {"event":9,"query":10,"throttle":11,"debounce":12,"emitter":13}],
 
 5: [function(require, module, exports) {
 
@@ -515,6 +516,12 @@ console.log('from test!');
 }, {}],
 
 6: [function(require, module, exports) {
+
+module.exports = 'another signup';
+
+}, {}],
+
+7: [function(require, module, exports) {
 
 
 /**
@@ -559,7 +566,7 @@ exports.unbind = function(el, type, fn, capture){
 
 }, {}],
 
-7: [function(require, module, exports) {
+8: [function(require, module, exports) {
 
 
 /**
@@ -604,9 +611,9 @@ exports.unbind = function(el, type, fn, capture){
   event.unbind(el, type, fn, capture);
 };
 
-}, {"matches-selector":13,"event":8}],
+}, {"matches-selector":14,"event":9}],
 
-8: [function(require, module, exports) {
+9: [function(require, module, exports) {
 
 var bind = window.addEventListener ? 'addEventListener' : 'attachEvent',
     unbind = window.removeEventListener ? 'removeEventListener' : 'detachEvent',
@@ -645,7 +652,7 @@ exports.unbind = function(el, type, fn, capture){
 };
 }, {}],
 
-9: [function(require, module, exports) {
+10: [function(require, module, exports) {
 
 function one(selector, el) {
   return el.querySelector(selector);
@@ -671,7 +678,7 @@ exports.engine = function(obj){
 
 }, {}],
 
-10: [function(require, module, exports) {
+11: [function(require, module, exports) {
 
 
 /**
@@ -706,7 +713,7 @@ function throttle (func, wait) {
 
 }, {}],
 
-11: [function(require, module, exports) {
+12: [function(require, module, exports) {
 
 /**
  * Debounces a function by the given threshold.
@@ -743,7 +750,7 @@ module.exports = function debounce(func, threshold, execAsap){
 
 }, {}],
 
-12: [function(require, module, exports) {
+13: [function(require, module, exports) {
 
 
 /**
@@ -912,7 +919,7 @@ Emitter.prototype.hasListeners = function(event){
 
 }, {}],
 
-13: [function(require, module, exports) {
+14: [function(require, module, exports) {
 
 /**
  * Module dependencies.
@@ -960,9 +967,9 @@ function match(el, selector) {
   return false;
 }
 
-}, {"query":9}],
+}, {"query":10}],
 
-14: [function(require, module, exports) {
+15: [function(require, module, exports) {
 
 var bind = window.addEventListener ? 'addEventListener' : 'attachEvent',
     unbind = window.removeEventListener ? 'removeEventListener' : 'detachEvent',
@@ -1001,7 +1008,7 @@ exports.unbind = function(el, type, fn, capture){
 };
 }, {}],
 
-15: [function(require, module, exports) {
+16: [function(require, module, exports) {
 
 function one(selector, el) {
   return el.querySelector(selector);

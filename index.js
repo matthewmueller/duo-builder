@@ -202,6 +202,9 @@ Builder.prototype.parallel = function(arr) {
  */
 
 Builder.prototype.resolve = function (req, file) {
+  // TODO: make this more generic and allow
+  // custom names
+  if ('/' == req.slice(-1)) req += 'index.js';
 
   // absolute dependencies (resolve to project root)
   if ('/' == req[0]) {
