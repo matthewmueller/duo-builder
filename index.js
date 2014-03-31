@@ -66,10 +66,28 @@ Builder.prototype.to = function(file) {
  * @api public
  */
 
-Builder.prototype.use = function() {
-  var args = slice.call(arguments);
-  this.transforms.push(args);
+Builder.prototype.transform = function(ext, fn) {
+  var t = [];
+
+  if (arguments.length == 2) {
+    t[t.length] = ext.split('.').pop();
+    t[t.length] = wrap(fn);
+  } else {
+    t[t.length] = wrap(ext);
+  }
+
+  this.transforms.push(t);
   return this;
+
+  function wrap(fn) {
+    if (!isGeneratorFunction(fn)) {
+      return function *() {
+        return fn.apply(this, arguments);
+      }
+    } else {
+      return fn;
+    }
+  }
 };
 
 /**
@@ -120,7 +138,8 @@ Builder.prototype.build = function *() {
 
 Builder.prototype.generate = function *(file) {
   if (this.visited[file]) return this.visited[file];
-  var ext = extname(file);
+  var transforms = this.transforms;
+  var ext = extname(file).slice(1);
 
   var json = {};
   json.id = file;
@@ -130,14 +149,13 @@ Builder.prototype.generate = function *(file) {
 
   var src = yield fs.readFile(file, 'utf8');
 
-  // TODO: handle generators
-  this.transforms.forEach(function(t) {
-    if (t[1]) {
-      src = ext == t[0] ? t[1].call(this, src, json) || '' : src;
-    } else {
-      src = t[0].call(this, src, json) || '';
+  for (var i = 0, t; t = transforms[i]; i++) {
+    if (t[1] && ext == t[0]) {
+      src = yield t[1](src, json, this) || '';
+    } else if (!t[1]) {
+      src = yield t[0](src, json, this) || ''
     }
-  }, this);
+  }
 
   json.src = src;
 
@@ -266,3 +284,15 @@ Builder.prototype.findManifest = function(req, deps) {
 
   return null;
 };
+
+/**
+ * Check if `obj` is a generator function.
+ *
+ * @param {Mixed} obj
+ * @return {Boolean}
+ * @api private
+ */
+
+function isGeneratorFunction(obj) {
+  return obj && obj.constructor && 'GeneratorFunction' == obj.constructor.name;
+}
