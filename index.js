@@ -2,26 +2,19 @@
  * Module dependencies
  */
 
+var debug = require('debug')('duo-builder');
+var slice = [].slice;
 var path = require('path');
-var detective = require('detective');
-var minimatch = require('minimatch');
 var dirname = path.dirname;
 var join = path.join;
 var extname = path.extname;
 var relative = path.relative;
-var debug = require('debug')('duo-builder');
-var Packer = require('browser-pack');
-var cofs = require('co-fs');
-var readFile = cofs.readFile;
-var stat = cofs.stat;
-var fs = require('fs');
+var fs = require('co-fs');
 var parallel = require('co-parallel');
-var write = require('co-write');
-var read = require('co-read');
 var values = require('object-values');
-var through = require('through');
 var Pack = require('duo-pack');
 var flatten = require('flatten-array');
+var requires = require('requires');
 
 /**
  * Expose `Builder`
@@ -50,12 +43,6 @@ function Builder(entry) {
   this.out = [];
   this.buildfile = join(this.dir, 'build.js');
   this.id = 0;
-
-  try {
-    this.cache = require(join(this.depdir, 'cache.json'));
-  } catch(e) {
-    this.cache = [];
-  }
 }
 
 /**
@@ -80,11 +67,9 @@ Builder.prototype.to = function(file) {
  * @api public
  */
 
-Builder.prototype.use = function(ext, fn) {
-  var t = [];
-  if (ext) t.push(ext);
-  if (fn) t.push(fn);
-  this.transforms.push(t);
+Builder.prototype.use = function() {
+  var args = slice.call(arguments);
+  this.transforms.push(args);
   return this;
 };
 
@@ -113,6 +98,8 @@ Builder.prototype.build = function *() {
     yield this.parallel(jsons.map(packup));
   }
 
+  return this;
+
   // get the file paths of the dependencies
   function deps(json) {
     return values(json.deps);
@@ -122,8 +109,6 @@ Builder.prototype.build = function *() {
   function *packup(json) {
     yield pack(json, !files.length);
   }
-
-  return this;
 };
 
 /**
@@ -141,11 +126,12 @@ Builder.prototype.generate = function *(file) {
   var json = {};
   json.id = file;
   json.entry = file == this.entry;
-  json.mtime = (yield stat(file)).mtime;
+  json.mtime = (yield fs.stat(file)).mtime;
   json.deps = {};
 
-  var src = yield readFile(file, 'utf8');
+  var src = yield fs.readFile(file, 'utf8');
 
+  // TODO: handle generators
   this.transforms.forEach(function(t) {
     if (t[1]) {
       src = ext == t[0] ? t[1].call(this, src, json) || '' : src;
@@ -157,8 +143,8 @@ Builder.prototype.generate = function *(file) {
   json.src = src;
 
   // find require's and resolve them
-  detective(json.src).forEach(function(req) {
-    json.deps[req] = this.resolve(req, file);
+  requires(json.src).forEach(function(req) {
+    json.deps[req.path] = this.resolve(req.path, file);
   }, this);
 
   // cache
@@ -168,7 +154,7 @@ Builder.prototype.generate = function *(file) {
 };
 
 /**
- * Inject a global dependency
+ * Include a global dependency
  *
  * TODO: change signature to support fn's
  *
@@ -178,7 +164,7 @@ Builder.prototype.generate = function *(file) {
  * @api @public
  */
 
-Builder.prototype.inject = function(req, src) {
+Builder.prototype.include = function(req, src) {
   this.visited[req] = {
     id: req,
     src: src,
