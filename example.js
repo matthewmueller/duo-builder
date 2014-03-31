@@ -1,12 +1,12 @@
 var Builder = require('./');
 var co = require('co');
-var pack = require('browser-pack')();
+var jade = require('jade');
 var entry = __dirname + '/example-app/index.js';
-var builder = Builder(entry);
+var builder = Builder(entry)
+  .use('.jade', compileJade);
 
-console.time('builder');
 co(builder.build).call(builder, function(err) {
-  console.timeEnd('builder');
+  // console.timeEnd('builder');
   if (err) {
     console.log(err);
     throw new Error(err);
@@ -15,9 +15,11 @@ co(builder.build).call(builder, function(err) {
   // console.log(JSON.stringify(builder.pack, true, 2));
 });
 
+var fs = require('fs');
+var runtime = fs.readFileSync(__dirname + '/node_modules/jade/lib/runtime.js', 'utf8');
+builder.inject('jade-runtime', runtime)
 
-// var browserify = require('browserify');
-// var b = browserify();
-// var fs = require('fs');
-// b.add(entry);
-// b.bundle().pipe(fs.createWriteStream(__dirname + '/example-app/bundle.js'));
+function compileJade(src, json) {
+  return 'var jade = require(\'jade-runtime\');\n\n' +
+         'module.exports = ' + jade.compileClient(src) + ';';
+}

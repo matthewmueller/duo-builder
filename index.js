@@ -74,13 +74,14 @@ Builder.prototype.to = function(file) {
  * Use a transform
  *
  * @param {String} ext (optional)
- * @param {GeneratorFunction} gen
+ * @param {Function} fn
  * @return {Builder} self
  * @api public
  */
 
-Builder.prototype.use = function(ext, gen) {
-  this.transforms.push([ext, gen]);
+Builder.prototype.use = function(ext, fn) {
+  if (1 == arguments.length) fn = ext, ext = '*';
+  this.transforms.push([ext, fn]);
   return this;
 };
 
@@ -138,24 +139,56 @@ Builder.prototype.build = function *() {
 
 Builder.prototype.generate = function *(file) {
   if (this.visited[file]) return this.visited[file];
+  var ext = extname(file);
 
   var json = {};
   json.id = file;
   json.entry = file == this.entry;
   json.mtime = (yield stat(file)).mtime;
-  json.src = yield readFile(file, 'utf8');
   json.deps = {};
+
+  var src = yield readFile(file, 'utf8');
+
+  this.transforms.forEach(function(t) {
+    if ('*' == t[0] || ext == t[0]) {
+      src = t[1].call(this, src, json) || '';
+    }
+  }, this);
+
+  json.src = src;
 
   // find require's and resolve them
   detective(json.src).forEach(function(req) {
-    var path = this.resolve(req, file);
-    json.deps[req] = path;
+    json.deps[req] = this.resolve(req, file);
   }, this);
 
   // cache
   this.visited[file] = json;
 
   return json;
+};
+
+/**
+ * Inject a global dependency
+ *
+ * TODO: change signature to support fn's
+ *
+ * @param {String} req
+ * @param {String} src
+ * @return {Builder} self
+ * @api @public
+ */
+
+Builder.prototype.inject = function(req, src) {
+  this.visited[req] = {
+    id: req,
+    src: src,
+    entry: false,
+    mtime: new Date,
+    deps: {}
+  };
+
+  return this;
 };
 
 /**
@@ -218,10 +251,15 @@ Builder.prototype.resolve = function (req, file) {
     return join(dirname(file), req);
   }
 
+  // it's been injected
+  if (this.visited[req]) {
+    return this.visited[req].id;
+  }
+
   // it's a component
   file = this.entry == file ? '.' : relative(this.dir, file);
   var deps = this.mapping[file];
-  if (!deps) throw new Error('mapping not found: ' + req + ' ' + file);
+  if (!deps) throw new Error('cannot resolve "' + req + '" in ' + file);
 
   return this.findManifest(req, deps);
 };
