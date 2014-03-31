@@ -34,14 +34,13 @@ function Builder(entry) {
   if (!(this instanceof Builder)) return new Builder(entry);
   this.entry = path.resolve(entry);
   this.dir = dirname(entry);
+  this.buildfile = join(this.dir, 'build.js');
   this.depdir = join(this.dir, 'components');
   this.mapping = require(join(this.depdir, 'mapping.json'));
+  this._concurrency = 10;
   this.transforms = [];
   this.visited = {};
   this.ids = {};
-  this._concurrency = 10;
-  this.out = [];
-  this.buildfile = join(this.dir, 'build.js');
   this.id = 0;
 }
 
