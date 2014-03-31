@@ -9,19 +9,20 @@
     "url": "git://github.com/matthewmueller/duo-builder.git"
   },
   "dependencies": {
-    "debug": "~0.7.4",
     "browser-pack": "~2.0.1",
     "co": "~3.0.4",
-    "detective": "~2.4.1",
     "co-fs": "~1.1.1",
-    "minimatch": "~0.2.14",
-    "resolve": "~0.6.1",
     "co-parallel": "0.0.1",
-    "co-write": "~0.3.0",
     "co-read": "0.0.1",
+    "co-write": "~0.3.0",
+    "debug": "~0.7.4",
+    "detective": "~2.4.1",
+    "duo-pack": "0.0.1",
+    "flatten-array": "0.0.3",
+    "minimatch": "~0.2.14",
     "object-values": "~0.1.0",
-    "through": "~2.3.4",
-    "duo-pack": "0.0.1"
+    "resolve": "~0.6.1",
+    "through": "~2.3.4"
   },
   "devDependencies": {
     "mocha": "*",

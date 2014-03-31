@@ -21,6 +21,7 @@ var read = require('co-read');
 var values = require('object-values');
 var through = require('through');
 var Pack = require('duo-pack');
+var flatten = require('flatten-array');
 
 /**
  * Expose `Builder`
@@ -80,8 +81,10 @@ Builder.prototype.to = function(file) {
  */
 
 Builder.prototype.use = function(ext, fn) {
-  if (1 == arguments.length) fn = ext, ext = '*';
-  this.transforms.push([ext, fn]);
+  var t = [];
+  if (ext) t.push(ext);
+  if (fn) t.push(fn);
+  this.transforms.push(t);
   return this;
 };
 
@@ -94,36 +97,30 @@ Builder.prototype.use = function(ext, fn) {
 
 Builder.prototype.build = function *() {
   var pack = Pack(this.buildfile);
-  var cache = fs.createWriteStream(join(this.depdir, 'cache.json'));
   var files = [this.entry];
 
-  // prelude
-  yield write(cache, '[');
-
   while (files.length) {
+    // generate json for each file
     var jsons = yield this.parallel(files.map(this.generate, this));
 
-    files = [];
-    jsons.forEach(function(json) {
-      files = files.concat(values(json.deps));
-    });
+    // get all the dependencies
+    var files = flatten(jsons.map(deps));
 
-    yield this.parallel(jsons.map(tocache));
+    // remap file ids
     jsons = jsons.map(this.remap, this);
-    yield this.parallel(jsons.map(build));
+
+    // pack up the json files
+    yield this.parallel(jsons.map(packup));
   }
 
-  // cache
-  yield write(cache, ']');
+  // get the file paths of the dependencies
+  function deps(json) {
+    return values(json.deps);
+  };
 
-  function *build(json) {
+  // pack the json into the buildfile
+  function *packup(json) {
     yield pack(json, !files.length);
-  }
-
-  function *tocache(json) {
-    var str = JSON.stringify(json);
-    if (files.length) str += ',';
-    yield write(cache, str);
   }
 
   return this;
@@ -150,8 +147,10 @@ Builder.prototype.generate = function *(file) {
   var src = yield readFile(file, 'utf8');
 
   this.transforms.forEach(function(t) {
-    if ('*' == t[0] || ext == t[0]) {
-      src = t[1].call(this, src, json) || '';
+    if (t[1]) {
+      src = ext == t[0] ? t[1].call(this, src, json) || '' : src;
+    } else {
+      src = t[0].call(this, src, json) || '';
     }
   }, this);
 
