@@ -277,7 +277,7 @@ Builder.prototype.resolve = function (req, file) {
 
 Builder.prototype.findManifest = function(req, deps) {
   for (var i = 0, dep; dep = deps[i]; i++) {
-    if (~dep.indexOf('-' + req + '@')) {
+    if (~dep.indexOf(req + '@')) {
       return join(this.dir, dep);
     }
   }
