@@ -1,9 +1,8 @@
-var Builder = require('./');
+var Builder = require('../');
 var co = require('co');
 var jade = require('duo-jade');
-var entry = __dirname + '/example-app/index.js';
 
-var builder = Builder(entry)
+var builder = Builder(__dirname + '/main.js')
   .to('build/build.js')
   .transform('jade', jade());
 
