@@ -5,4 +5,3 @@
 var uid = require('uid');
 
 console.log('from test!');
-

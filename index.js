@@ -38,6 +38,7 @@ function Builder(entry) {
   this.depdir = join(this.dir, 'components');
   this.mapping = require(join(this.depdir, 'mapping.json'));
   this._manifest = 'component.json';
+  this._development = false;
   this._concurrency = 10;
   this.transforms = [];
   this.visited = {};
@@ -57,6 +58,16 @@ Builder.prototype.to = function(file) {
   this.buildfile = join(this.dir, file);
   return this;
 };
+
+/**
+ * Development
+ */
+
+Builder.prototype.development = function(dev) {
+  this._development = undefined == dev ? true : dev;
+  return this;
+};
+
 
 /**
  * Use a transform
@@ -99,7 +110,7 @@ Builder.prototype.transform = function(ext, fn) {
  */
 
 Builder.prototype.build = function *() {
-  var pack = Pack(this.buildfile);
+  var pack = Pack(this.buildfile, { debug: this._development });
   var files = [this.entry];
 
   while (files.length) {
@@ -110,7 +121,7 @@ Builder.prototype.build = function *() {
     var files = flatten(jsons.map(deps));
 
     // remap file ids
-    jsons = jsons.map(this.remap, this);
+    // jsons = jsons.map(this.remap, this);
 
     // pack up the json files
     yield this.parallel(jsons.map(packup));
