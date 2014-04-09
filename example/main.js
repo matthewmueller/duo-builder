@@ -7,6 +7,7 @@ var events = require('events');
 var infinite = require('component-infinity');
 var test = require('./test');
 var signup = require('/lib/signup/signup.js')
+var login = require('/lib/login/');
 var tpl = require('./tpl.jade');
 console.log(tpl({
   name: '<b>matt</b>'
@@ -19,3 +20,4 @@ console.log(tpl({
 console.log(uid(10));
 console.log(infinite);
 console.log(signup);
+console.log(login);

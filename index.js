@@ -233,6 +233,11 @@ Builder.prototype.parallel = function(arr) {
 /**
  * Resolve a dependency
  *
+ * TODO: turn into a generator so we can support:
+ *
+ *  require('signup/signup') => signup/signup.js
+ *  require('signup/signup') => signup/signup/index.js
+ *
  * @param {String} req
  * @param {String} dir
  * @return {String}
