@@ -1,6 +1,6 @@
 {
   "name": "duo-builder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "build browser dependencies",
   "keywords": [],
   "author": "Matt Mueller <mattmuelle@gmail.com>",
