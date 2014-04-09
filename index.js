@@ -37,6 +37,7 @@ function Builder(entry) {
   this.buildfile = join(this.dir, 'build.js');
   this.depdir = join(this.dir, 'components');
   this.mapping = require(join(this.depdir, 'mapping.json'));
+  this._manifest = 'component.json';
   this._concurrency = 10;
   this.transforms = [];
   this.visited = {};
@@ -211,6 +212,7 @@ Builder.prototype.remap = function(json) {
 
   return json;
 
+  // either use an existing id, or create a new one
   function id (file) {
     return self.ids[file] = self.ids[file] || ++self.id;
   }
@@ -253,17 +255,22 @@ Builder.prototype.resolve = function (req, file) {
     return join(dirname(file), req);
   }
 
-  // it's been injected
+  // it's been included by the builder
   if (this.visited[req]) {
     return this.visited[req].id;
   }
 
   // it's a component
-  file = this.entry == file ? '.' : relative(this.dir, file);
+  file = this.findSlug(file) || '.';
   var deps = this.mapping[file];
   if (!deps) throw new Error('cannot resolve "' + req + '" in ' + file);
 
-  return this.findManifest(req, deps);
+  // resolve the component
+  var slug = this.findManifest(req, deps);
+  var manifest = join(this.depdir, slug, this._manifest);
+  var json = this.json(manifest);
+  var main = json.main || 'index.js';
+  return join(this.depdir, slug, main);
 };
 
 /**
@@ -277,12 +284,41 @@ Builder.prototype.resolve = function (req, file) {
 
 Builder.prototype.findManifest = function(req, deps) {
   for (var i = 0, dep; dep = deps[i]; i++) {
-    if (~dep.indexOf(req + '@')) {
-      return join(this.dir, dep);
-    }
+    if (~dep.indexOf(req + '@')) return dep;
   }
 
   return null;
+};
+
+/**
+ * Find the component slug from the file path
+ *
+ * @param {String} file
+ * @param {String}
+ * @api private
+ */
+
+Builder.prototype.findSlug = function(file) {
+  rslug = /[\w-]+@[^\/]+/;
+  var m = file.match(rslug);
+  return m ? m[0] : false;
+};
+
+
+/**
+ * Fetch JSON
+ *
+ * @param {String} path
+ * @return {Object}
+ * @api private
+ */
+
+Builder.prototype.json = function(path) {
+  try {
+    return require(path)
+  } catch(e) {
+    return {};
+  }
 };
 
 /**
