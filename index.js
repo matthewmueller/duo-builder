@@ -33,10 +33,7 @@ module.exports = Builder;
 function Builder(entry) {
   if (!(this instanceof Builder)) return new Builder(entry);
   this.entry = path.resolve(entry);
-  this.dir = dirname(entry);
-  this.buildfile = join(this.dir, 'build.js');
-  this.depdir = join(this.dir, 'components');
-  this.mapping = require(join(this.depdir, 'mapping.json'));
+  this.directory(dirname(entry));
   this._manifest = 'component.json';
   this._development = false;
   this._concurrency = 10;
@@ -45,6 +42,21 @@ function Builder(entry) {
   this.ids = {};
   this.id = 0;
 }
+
+/**
+ * Specify the base / root directory.
+ * 
+ * @param {String} dir
+ * @return {Builder} self
+ * @api public
+ */
+
+Builder.prototype.directory = function(dir){
+  this.dir = dir;
+  this.buildfile = join(this.dir, 'build.js');
+  this.depdir = join(this.dir, 'components');
+  return this;
+};
 
 /**
  * Specify the `file` to build to
@@ -67,7 +79,6 @@ Builder.prototype.development = function(dev) {
   this._development = undefined == dev ? true : dev;
   return this;
 };
-
 
 /**
  * Use a transform
@@ -112,6 +123,9 @@ Builder.prototype.transform = function(ext, fn) {
 Builder.prototype.build = function *() {
   var pack = Pack(this.buildfile, { debug: this._development });
   var files = [this.entry];
+
+  // get components/mapping.json
+  this.mapping = yield json(join(this.depdir, 'mapping.json'));
 
   while (files.length) {
     // generate json for each file
@@ -347,4 +361,16 @@ Builder.prototype.json = function(path) {
 
 function isGeneratorFunction(obj) {
   return obj && obj.constructor && 'GeneratorFunction' == obj.constructor.name;
+}
+
+/**
+ * Read `path` as json.
+ * 
+ * @param {String} path
+ * @return {Object}
+ * @api private
+ */
+
+function *json(path){
+  return JSON.parse(yield fs.readFile(path));
 }
