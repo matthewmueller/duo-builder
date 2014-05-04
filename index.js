@@ -329,7 +329,7 @@ Builder.prototype.findManifest = function(req, deps) {
  */
 
 Builder.prototype.findSlug = function(file) {
-  rslug = /[\w-]+@[^\/]+/;
+  var rslug = /[\w-.]+@[^\/]+/;
   var m = file.match(rslug);
   return m ? m[0] : false;
 };
