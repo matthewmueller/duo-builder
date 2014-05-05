@@ -15,6 +15,7 @@ var values = require('object-values');
 var Pack = require('duo-pack');
 var flatten = require('flatten-array');
 var requires = require('requires');
+var clone = require('clone-component');
 
 /**
  * Expose `Builder`
@@ -121,8 +122,11 @@ Builder.prototype.transform = function(ext, fn) {
  */
 
 Builder.prototype.build = function *() {
+  this.buildfile = null;
   var pack = Pack(this.buildfile, { debug: this._development });
   var files = [this.entry];
+  var entries = [];
+  var ret = '';
 
   // get components/mapping.json
   this.mapping = yield json(join(this.depdir, 'mapping.json'));
@@ -138,10 +142,14 @@ Builder.prototype.build = function *() {
     // jsons = jsons.map(this.remap, this);
 
     // pack up the json files
-    yield this.parallel(jsons.map(packup));
+    entries = entries.concat(jsons);
   }
 
-  return this;
+  while (entries.length) {
+    yield packup(entries.pop());
+  }
+
+  return ret;
 
   // get the file paths of the dependencies
   function deps(json) {
@@ -150,7 +158,7 @@ Builder.prototype.build = function *() {
 
   // pack the json into the buildfile
   function *packup(json) {
-    yield pack(json, !files.length);
+    ret += yield pack(clone(json), 0 == entries.length);
   }
 };
 
@@ -186,9 +194,12 @@ Builder.prototype.generate = function *(file) {
   json.src = src;
 
   // find require's and resolve them
-  requires(json.src).forEach(function(req) {
-    json.deps[req.path] = this.resolve(req.path, file);
-  }, this);
+  var reqs = requires(json.src);
+
+  for (var i = 0, req; req = reqs[i]; ++i) {
+    var resolved = yield this.resolve(req.path, file);
+    if (resolved) json.deps[req.path] = resolved;
+  }
 
   // cache
   this.visited[file] = json;
@@ -262,13 +273,15 @@ Builder.prototype.parallel = function(arr) {
  *
  *  require('signup/signup') => signup/signup.js
  *  require('signup/signup') => signup/signup/index.js
+ * 
+ * TODO: make it less ugly.
  *
  * @param {String} req
  * @param {String} dir
  * @return {String}
  */
 
-Builder.prototype.resolve = function (req, file) {
+Builder.prototype.resolve = function *(req, file) {
   // TODO: make this more generic and allow
   // custom names
   if ('/' == req.slice(-1)) req += 'index.js';
@@ -281,6 +294,16 @@ Builder.prototype.resolve = function (req, file) {
 
   // relative dependencies
   if ('.' == req[0]) {
+    var dir = dirname(file);
+    var stat;
+
+    try {
+      stat = yield fs.stat(join(dir, req));
+      if (stat.isDirectory()) return join(dir, req, 'index.js');
+    } catch (e) {
+      return '';
+    }
+
     req = extname(req) ? req : req + '.js';
     return join(dirname(file), req);
   }
@@ -293,10 +316,11 @@ Builder.prototype.resolve = function (req, file) {
   // it's a component
   file = this.findSlug(file) || '.';
   var deps = this.mapping[file];
-  if (!deps) throw new Error('cannot resolve "' + req + '" in ' + file);
+  if (!deps) return '';
 
   // resolve the component
-  var slug = this.findManifest(req, deps);
+  var slug = this.findManifest(req, deps) || this.findManifest(req + '.js', deps);
+  if (!slug) return '';
   var manifest = join(this.depdir, slug, this._manifest);
   var json = this.json(manifest);
   var main = json.main || 'index.js';
@@ -372,5 +396,5 @@ function isGeneratorFunction(obj) {
  */
 
 function *json(path){
-  return JSON.parse(yield fs.readFile(path));
+  return JSON.parse(yield fs.readFile(path, 'utf-8'));
 }
