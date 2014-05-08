@@ -13,7 +13,7 @@
     "co-fs": "~1.1.1",
     "co-parallel": "0.0.1",
     "debug": "~0.7.4",
-    "duo-pack": "git+ssh://git@github.com:component/duo-pack#return/src",
+    "duo-pack": "git+ssh://git@github.com:component/duo-pack#6c132a1b65",
     "flatten-array": "0.0.3",
     "object-values": "~0.1.0",
     "requires": "^1.0.0",

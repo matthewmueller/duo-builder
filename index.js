@@ -1,7 +1,9 @@
+
 /**
  * Module dependencies
  */
 
+var Emitter = require('events').EventEmitter;
 var debug = require('debug')('duo-builder');
 var slice = [].slice;
 var path = require('path');
@@ -33,6 +35,7 @@ module.exports = Builder;
 
 function Builder(entry) {
   if (!(this instanceof Builder)) return new Builder(entry);
+  Emitter.call(this);
   this.entry = path.resolve(entry);
   this.directory(dirname(entry));
   this._manifest = 'component.json';
@@ -45,6 +48,12 @@ function Builder(entry) {
 }
 
 /**
+ * Inherit `Emitter`
+ */
+
+Builder.prototype.__proto__ = Emitter.prototype;
+
+/**
  * Specify the base / root directory.
  * 
  * @param {String} dir
@@ -54,7 +63,6 @@ function Builder(entry) {
 
 Builder.prototype.directory = function(dir){
   this.dir = dir;
-  this.buildfile = join(this.dir, 'build.js');
   this.depdir = join(this.dir, 'components');
   return this;
 };
@@ -122,10 +130,10 @@ Builder.prototype.transform = function(ext, fn) {
  */
 
 Builder.prototype.build = function *() {
-  this.buildfile = null;
   var pack = Pack(this.buildfile, { debug: this._development });
   var files = [this.entry];
   var entries = [];
+  var packed = {};
   var ret = '';
 
   // get components/mapping.json
@@ -145,6 +153,14 @@ Builder.prototype.build = function *() {
     entries = entries.concat(jsons);
   }
 
+  // remove duplicates
+  entries = entries.filter(function(entry){
+    if (packed[entry.id]) return false;
+    packed[entry.id] = true;
+    return true;
+  });
+
+  // pack all modules
   while (entries.length) {
     yield packup(entries.pop());
   }
@@ -305,9 +321,7 @@ Builder.prototype.resolve = function *(req, file) {
     try {
       stat = yield fs.stat(join(dir, req));
       if (stat.isDirectory()) return join(dir, req, 'index.js');
-    } catch (e) {
-      return '';
-    }
+    } catch (e) {}
 
     req = extname(req) ? req : req + '.js';
     return join(dirname(file), req);
