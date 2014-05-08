@@ -204,6 +204,11 @@ Builder.prototype.generate = function *(file) {
   // cache
   this.visited[file] = json;
 
+  // debug
+  debug('generated %s', json.id);
+  debug('requires %j', reqs.map(function(_){ return _.string; }));
+  debug('deps %j', Object.keys(json.deps));
+
   return json;
 };
 
