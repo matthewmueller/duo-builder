@@ -316,15 +316,25 @@ Builder.prototype.resolve = function *(req, file) {
   // relative dependencies
   if ('.' == req[0]) {
     var dir = dirname(file);
+    var resolved;
     var stat;
 
+    // file.js
+    var filename = extname(req) ? req : req + '.js';
+    var file = join(dir, filename);
+    var directory = join(dir, req);
+
+    // try file.js
     try {
-      stat = yield fs.stat(join(dir, req));
-      if (stat.isDirectory()) return join(dir, req, 'index.js');
+      stat = yield fs.stat(file);
+      return file;
     } catch (e) {}
 
-    req = extname(req) ? req : req + '.js';
-    return join(dirname(file), req);
+    // try ./file
+    try {
+      stat = yield fs.stat(directory);
+      return join(directory, 'index.js');
+    } catch (e) {}
   }
 
   // it's been included by the builder
