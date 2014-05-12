@@ -90,6 +90,19 @@ Builder.prototype.development = function(dev) {
 };
 
 /**
+ * Set concurrency.
+ * 
+ * @param {Number} n
+ * @return {Builder} self
+ * @api public
+ */
+
+Builder.prototype.concurrency = function(n){
+  this._concurrency = n;
+  return this;
+};
+
+/**
  * Use a transform
  *
  * @param {String} ext (optional)
