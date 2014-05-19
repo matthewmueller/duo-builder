@@ -13,16 +13,18 @@
     "co-fs": "~1.1.1",
     "co-parallel": "0.0.1",
     "debug": "~0.7.4",
-    "duo-pack": "0.0.4",
+    "duo-pack": "git+ssh://git@github.com:component/duo-pack#6c132a1b65",
     "flatten-array": "0.0.3",
     "object-values": "~0.1.0",
-    "requires": "^1.0.0"
+    "requires": "^1.0.0",
+    "clone-component": "~0.2.2"
   },
   "devDependencies": {
     "browserify": "~3.31.2",
     "duo-jade": "0.0.2",
-    "mocha": "*",
-    "should": "*"
+    "mocha": "~1.18.2",
+    "should": "*",
+    "co-mocha": "0.0.3"
   },
   "main": "index"
 }

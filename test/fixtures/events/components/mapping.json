@@ -1,0 +1,19 @@
+{
+  ".": [
+    "component-event@0.1.3",
+    "component-delegate@0.2.1",
+    "visionmedia-debug@0.7.2"
+  ],
+  "component-event@0.1.3": [],
+  "component-delegate@0.2.1": [
+    "discore-closest@0.1.2",
+    "component-event@0.1.3"
+  ],
+  "discore-closest@0.1.2": [
+    "component-matches-selector@0.1.2"
+  ],
+  "component-matches-selector@0.1.2": [
+    "component-query@0.0.3"
+  ],
+  "component-query@0.0.3": []
+}
