@@ -43,7 +43,6 @@ function Builder(entry) {
   this._concurrency = 10;
   this.transforms = [];
   this.visited = {};
-  this.ids = {};
   this.id = 0;
 }
 
@@ -268,30 +267,6 @@ Builder.prototype.include = function(req, src) {
   };
 
   return this;
-};
-
-/**
- * Remap the module's filepaths to uids
- *
- * @param {Object} json
- * @return {Object}
- * @api private
- */
-
-Builder.prototype.remap = function(json) {
-  var self = this;
-  json.id = id(json.id);
-
-  for (var req in json.deps) {
-    json.deps[req] = id(json.deps[req]);
-  }
-
-  return json;
-
-  // either use an existing id, or create a new one
-  function id (file) {
-    return self.ids[file] = self.ids[file] || ++self.id;
-  }
 };
 
 /**
