@@ -1,19 +1,39 @@
 {
-  ".": [
-    "component-event@0.1.3",
-    "component-delegate@0.2.1",
-    "visionmedia-debug@0.7.2"
-  ],
-  "component-event@0.1.3": [],
-  "component-delegate@0.2.1": [
-    "discore-closest@0.1.2",
-    "component-event@0.1.3"
-  ],
-  "discore-closest@0.1.2": [
-    "component-matches-selector@0.1.2"
-  ],
-  "component-matches-selector@0.1.2": [
-    "component-query@0.0.3"
-  ],
-  "component-query@0.0.3": []
+  "component-events@1.0.6": {
+    "root": true,
+    "main": "index.js",
+    "deps": [
+      "component-event@0.1.3",
+      "component-delegate@0.2.1",
+      "visionmedia-debug@0.7.2"
+    ]
+  },
+  "component-event@0.1.3": {
+    "root": false,
+    "main": "index.js",
+    "deps": []
+  },
+  "component-delegate@0.2.1": {
+    "root": false,
+    "main": "index.js",
+    "deps": [
+      "discore-closest@0.1.2",
+      "component-event@0.1.3"
+    ]
+  },
+  "discore-closest@0.1.2": {
+    "root": false,
+    "main": "index.js",
+    "deps": ["component-matches-selector@0.1.2"]
+  },
+  "component-matches-selector@0.1.2": {
+    "root": false,
+    "main": "index.js",
+    "deps": ["component-query@0.0.3"]
+  },
+  "component-query@0.0.3": {
+    "root": false,
+    "main": "index.js",
+    "deps": []
+  }
 }

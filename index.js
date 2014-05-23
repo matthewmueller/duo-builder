@@ -356,17 +356,12 @@ Builder.prototype.resolve = function *(req, file) {
   }
 
   // it's a component
-  file = this.findSlug(file) || '.';
-  var deps = this.mapping[file];
-  if (!deps) return '';
-
-  // resolve the component
-  var slug = this.findManifest(req, deps) || this.findManifest(req + '.js', deps);
-  if (!slug) return '';
-  var manifest = join(this.depdir, slug, this._manifest);
-  var json = this.json(manifest);
-  var main = json.main || 'index.js';
-  return join(this.depdir, slug, main);
+  var parent = this.findSlug(file) || Object.keys(this.mapping)[0];
+  var json = this.mapping[parent];
+  if (!json) return '';
+  var dep = this.findManifest(req, json.deps);
+  if (!dep) throw new Error('Cannot find dependency "' + dep + '" of "' + parent + '"');
+  return join(this.depdir, dep, json.main);
 };
 
 /**
@@ -397,7 +392,7 @@ Builder.prototype.findManifest = function(req, deps) {
 Builder.prototype.findSlug = function(file) {
   var rslug = /[\w-.]+@[^\/]+/;
   var m = file.match(rslug);
-  return m ? m[0] : false;
+  return m && m[0];
 };
 
 
