@@ -1,0 +1,2 @@
+
+module.exports = 'tiny module';
