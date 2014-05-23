@@ -136,6 +136,42 @@ Builder.prototype.transform = function(ext, fn) {
 };
 
 /**
+ * Get all entries.
+ * 
+ * @return {Array}
+ * @api public
+ */
+
+Builder.prototype.entries = function*(){
+  var files = [this.entry];
+  var entries = [];
+  var dupes = {};
+  var ret = '';
+
+  // get the mappings.
+  this.mapping = this.mapping || (yield json(join(this.depdir, 'mapping.json')));
+
+  // convert files and requires to jsons.
+  while (files.length) {
+    var jsons = yield this.parallel(files.map(this.generate, this));
+    var files = flatten(jsons.map(deps));
+    var entries = entries.concat(jsons);
+  }
+
+  // remove duplicates
+  return entries.filter(function(entry){
+    if (dupes[entry.id]) return false;
+    dupes[entry.id] = true;
+    return true;
+  });
+
+  // get deps of json.
+  function deps(json){
+    return values(json.deps);
+  }
+};
+
+/**
  * Build & write the bundle
  *
  * @return {Builder} (self)
@@ -144,50 +180,20 @@ Builder.prototype.transform = function(ext, fn) {
 
 Builder.prototype.build = function *() {
   var pack = Pack(this.buildfile, { debug: this._development });
-  var files = [this.entry];
-  var entries = [];
-  var packed = {};
+  var entries = yield this.entries();
   var ret = '';
-
-  // get components/mapping.json
-  this.mapping = yield json(join(this.depdir, 'mapping.json'));
-
-  while (files.length) {
-    // generate json for each file
-    var jsons = yield this.parallel(files.map(this.generate, this));
-
-    // get all the dependencies
-    var files = flatten(jsons.map(deps));
-
-    // remap file ids
-    // jsons = jsons.map(this.remap, this);
-
-    // pack up the json files
-    entries = entries.concat(jsons);
-  }
-
-  // remove duplicates
-  entries = entries.filter(function(entry){
-    if (packed[entry.id]) return false;
-    packed[entry.id] = true;
-    return true;
-  });
 
   // pack all modules
   while (entries.length) {
-    yield packup(entries.pop());
+    ret += yield packup(entries.pop());
   }
 
+  // done
   return ret;
-
-  // get the file paths of the dependencies
-  function deps(json) {
-    return values(json.deps);
-  };
 
   // pack the json into the buildfile
   function *packup(json) {
-    ret += yield pack(clone(json), 0 == entries.length);
+    return yield pack(clone(json), 0 == entries.length);
   }
 };
 
