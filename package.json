@@ -17,7 +17,8 @@
     "flatten-array": "0.0.3",
     "object-values": "~0.1.0",
     "requires": "^1.0.0",
-    "clone-component": "~0.2.2"
+    "clone-component": "~0.2.2",
+    "gnode": "0.0.8"
   },
   "devDependencies": {
     "browserify": "~3.31.2",
