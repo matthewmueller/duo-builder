@@ -2,6 +2,8 @@
 # duo-builder
 
   build browser dependencies
+  
+  **Deprecated**
 
 ## Example
 
